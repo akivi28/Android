@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Android</string>
+    <string name="app_title">Знайомство з андроїд</string>
+    <string name="main_btn_calc">Калькулятор</string>
+</resources>
