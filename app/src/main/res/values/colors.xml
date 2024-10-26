@@ -6,4 +6,13 @@
     <color name="foreground">#003E07</color>
 
     <color name="main_btn">#028A61</color>
+
+    <!-- region Calc -->
+    <color name="calc_layout_background">#102817</color>
+    <color name="calc_text_color">#FEFEFE</color>
+    <color name="calc_history_color">#A5A5A5</color>
+    <color name="calc_btn_digit">#81C784</color>
+    <color name="calc_btn_operation">#4CAF50</color>
+    <color name="calc_btn_equal">#00C853</color>
+    <!-- endregion -->
 </resources>
