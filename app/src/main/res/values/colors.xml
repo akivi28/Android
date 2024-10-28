@@ -14,5 +14,7 @@
     <color name="calc_btn_digit">#81C784</color>
     <color name="calc_btn_operation">#4CAF50</color>
     <color name="calc_btn_equal">#00C853</color>
+
+    <color name="calc_btn_click">#C7FBC7</color>
     <!-- endregion -->
 </resources>

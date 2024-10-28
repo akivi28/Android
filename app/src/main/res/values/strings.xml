@@ -32,6 +32,10 @@
     <string name="calc_btn_digit_8">8</string>
     <string name="calc_btn_digit_9">9</string>
 
+    <string name="calc_msg_too_long">Максимальна кількість символів</string>
+    <string name="calc_msg_divide_by_zero">Ділення на нуль</string>
+    <string name="calc_msg_sqrt_negative">Корінь з від`ємного числа</string>
+
     <!-- endregion -->
 
 </resources>
