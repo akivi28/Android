@@ -109,6 +109,17 @@ public class GameActivity extends AppCompatActivity {
         initField();
         spawnCell();
         showField();
+
+        findViewById(R.id.game_btn_new).setOnClickListener(this::newGameBtnClick);
+    }
+
+    private void newGameBtnClick(View view){
+        int tmp = bestScore;
+        initField();
+        spawnCell();
+        bestScore = tmp;
+        showField();
+
     }
 
     private boolean moveTop() {
