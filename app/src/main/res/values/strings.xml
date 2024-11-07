@@ -38,4 +38,8 @@
 
     <!-- endregion -->
 
+    <string name="main_btn_game">2048</string>
+
+    <string name="main_btn_anim">Анімації</string>
+
 </resources>

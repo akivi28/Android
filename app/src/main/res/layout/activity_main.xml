@@ -45,10 +45,19 @@
             app:backgroundTint="@null"/>
 
         <Button
-            android:id="@+id/button2"
+            android:id="@+id/main_btn_game"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/main_btn_calc"
+            android:text="@string/main_btn_game"
+            android:background="@color/main_btn"
+            android:textSize="20sp"
+            android:layout_marginTop="40dp"
+            app:backgroundTint="@null"/>
+        <Button
+            android:id="@+id/main_btn_anim"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/main_btn_anim"
             android:background="@color/main_btn"
             android:textSize="20sp"
             android:layout_marginTop="40dp"

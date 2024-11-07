@@ -25,10 +25,20 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.main_btn_calc).setOnClickListener(this::onCalcBtnClick);
+        findViewById(R.id.main_btn_game).setOnClickListener(this::onGameBtnClick);
+        findViewById(R.id.main_btn_anim).setOnClickListener(this::onAnimBtnClick);
     }
 
     private void onCalcBtnClick(View view){
         Intent intent = new Intent(this, CalcActivity.class);
+        startActivity(intent);
+    }
+    private void onGameBtnClick(View view){
+        Intent intent = new Intent(this, GameActivity.class);
+        startActivity(intent);
+    }
+    private void onAnimBtnClick(View view){
+        Intent intent = new Intent(this,AnimActivity.class);
         startActivity(intent);
     }
 }
