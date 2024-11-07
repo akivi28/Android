@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
@@ -26,6 +27,10 @@ public class GameActivity extends AppCompatActivity {
     private final Random random = new Random();
 
     private Animation spawnAnimation, collapseAnimation;
+    private int score, bestScore;
+    private TextView tvScore, tvBestScore;
+
+    private Animation scaleDemo;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -39,8 +44,13 @@ public class GameActivity extends AppCompatActivity {
             return insets;
         });
 
+        scaleDemo = AnimationUtils.loadAnimation(this, R.anim.scale_demo);
+
         spawnAnimation = AnimationUtils.loadAnimation(this,R.anim.game_spawn);
         collapseAnimation = AnimationUtils.loadAnimation(this, R.anim.game_collapse);
+
+        tvScore = findViewById(R.id.game_tv_score);
+        tvBestScore = findViewById(R.id.game_tv_best_score);
 
         LinearLayout gameField = findViewById(R.id.game_ll_field);
         gameField.post(()->{
@@ -119,6 +129,7 @@ public class GameActivity extends AppCompatActivity {
             for (int i = 0; i < N - 1; i++) {
                 if (cells[i][j] == cells[i + 1][j] && cells[i][j] != 0) {
                     cells[i][j] *= 2;
+                    score += cells[i][j];
                     tvCells[i][j].setTag(collapseAnimation);
 
                     for (int k = i + 1; k < N - 1; k++) {
@@ -150,6 +161,7 @@ public class GameActivity extends AppCompatActivity {
             for (int i = N - 1; i > 0; i--) {
                 if (cells[i][j] == cells[i - 1][j] && cells[i][j] != 0) {
                     cells[i][j] *= 2;
+                    score += cells[i][j];
                     tvCells[i][j].setTag(collapseAnimation);
 
                     for (int k = i - 1; k > 0; k--) {
@@ -163,8 +175,6 @@ public class GameActivity extends AppCompatActivity {
         return result;
     }
 
-
-
     private boolean moveLeft() {
         boolean result = false;
         for (int i = 0; i < N; i++) {      // [4 2 2 4]
@@ -177,6 +187,7 @@ public class GameActivity extends AppCompatActivity {
                     else {
                         if( cells[i][j] == cells[i][j0] ) {  // collapse
                             cells[i][j] *= 2;
+                            score += cells[i][j];
                             tvCells[i][j].setTag(collapseAnimation);
                             cells[i][j0] = 0;
                             result = true;
@@ -226,6 +237,7 @@ public class GameActivity extends AppCompatActivity {
             for( int j = N - 1; j > 0; j-- ) {
                 if( cells[i][j - 1] == cells[i][j] && cells[i][j] != 0 ) {
                     cells[i][j] *= 2;
+                    score += cells[i][j];
                     tvCells[i][j].setTag( collapseAnimation );
 
                     for( int k = j - 1; k > 0; k-- ) {
@@ -278,6 +290,8 @@ public class GameActivity extends AppCompatActivity {
                 ));
             }
         }
+        score = 0;
+        bestScore = 0;
     }
 
     private void showField() {
@@ -312,7 +326,12 @@ public class GameActivity extends AppCompatActivity {
                 }
             }
         }
-
+        tvScore.setText( getString( R.string.game_tv_score, String.valueOf( score ) ) );
+        if( score > bestScore ) {
+            bestScore = score;
+            tvBestScore.startAnimation(scaleDemo);
+        }
+        tvBestScore.setText( getString( R.string.game_tv_best, String.valueOf( bestScore ) ) );
     }
 
 }
