@@ -59,7 +59,12 @@ public class GameActivity extends AppCompatActivity {
         gameField.setOnTouchListener( new OnSwipeListener(GameActivity.this) {
                     @Override
                     public void onSwipeBottom() {
-                        Toast.makeText(GameActivity.this, "Bottom", Toast.LENGTH_SHORT).show();
+                        if (moveBottom()) {
+                            spawnCell();
+                            showField();
+                        } else {
+                            Toast.makeText(GameActivity.this, "No Down Move", Toast.LENGTH_SHORT).show();
+                        }
                     }
                     @Override
                     public void onSwipeLeft() {
@@ -83,13 +88,82 @@ public class GameActivity extends AppCompatActivity {
                     }
                     @Override
                     public void onSwipeTop() {
-                        Toast.makeText(GameActivity.this, "Top", Toast.LENGTH_SHORT).show();
+                        if (moveTop()) {
+                            spawnCell();
+                            showField();
+                        } else {
+                            Toast.makeText(GameActivity.this, "No Up Move", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
         initField();
         spawnCell();
         showField();
     }
+
+    private boolean moveTop() {
+        boolean result = false;
+        for (int j = 0; j < N; j++) {
+            boolean wasShift;
+            do {
+                wasShift = false;
+                for (int i = 0; i < N - 1; i++) {
+                    if (cells[i + 1][j] != 0 && cells[i][j] == 0) {
+                        cells[i][j] = cells[i + 1][j];
+                        cells[i + 1][j] = 0;
+                        wasShift = result = true;
+                    }
+                }
+            } while (wasShift);
+
+            for (int i = 0; i < N - 1; i++) {
+                if (cells[i][j] == cells[i + 1][j] && cells[i][j] != 0) {
+                    cells[i][j] *= 2;
+                    tvCells[i][j].setTag(collapseAnimation);
+
+                    for (int k = i + 1; k < N - 1; k++) {
+                        cells[k][j] = cells[k + 1][j];
+                    }
+                    cells[N - 1][j] = 0;
+                    result = true;
+                }
+            }
+        }
+        return result;
+    }
+
+    private boolean moveBottom() {
+        boolean result = false;
+        for (int j = 0; j < N; j++) {
+            boolean wasShift;
+            do {
+                wasShift = false;
+                for (int i = N - 1; i > 0; i--) {
+                    if (cells[i - 1][j] != 0 && cells[i][j] == 0) {
+                        cells[i][j] = cells[i - 1][j];
+                        cells[i - 1][j] = 0;
+                        wasShift = result = true;
+                    }
+                }
+            } while (wasShift);
+
+            for (int i = N - 1; i > 0; i--) {
+                if (cells[i][j] == cells[i - 1][j] && cells[i][j] != 0) {
+                    cells[i][j] *= 2;
+                    tvCells[i][j].setTag(collapseAnimation);
+
+                    for (int k = i - 1; k > 0; k--) {
+                        cells[k][j] = cells[k - 1][j];
+                    }
+                    cells[0][j] = 0;
+                    result = true;
+                }
+            }
+        }
+        return result;
+    }
+
+
 
     private boolean moveLeft() {
         boolean result = false;
