@@ -2,6 +2,7 @@
     <string name="app_name">Android</string>
     <string name="app_title">Знайомство з андроїд</string>
     <string name="main_btn_calc">Калькулятор</string>
+    <string name="main_btn_chat">Мережа. Чат</string>
 
     <!-- region Calc -->
     <string name="calc_tv_title">Калькулятор</string>
