@@ -1,8 +1,10 @@
 package itstep.learning;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.animation.Animation;
@@ -11,18 +13,28 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.logging.Logger;
 
 public class GameActivity extends AppCompatActivity {
+    private final String bestScoreFilename = "best_score.2048";
     private final int N = 4;
     private final int[][] cells = new int[N][N];
+    private int[][] undo;
+    private int prevScore;
     private final TextView[][] tvCells = new TextView[N][N];
     private final Random random = new Random();
 
@@ -78,7 +90,9 @@ public class GameActivity extends AppCompatActivity {
                     }
                     @Override
                     public void onSwipeLeft() {
-                        if( moveLeft() ) {
+                        if( canMoveLeft() ) {
+                            saveField();
+                            moveLeft();
                             spawnCell();
                             showField();
                         }
@@ -111,6 +125,67 @@ public class GameActivity extends AppCompatActivity {
         showField();
 
         findViewById(R.id.game_btn_new).setOnClickListener(this::newGameBtnClick);
+        findViewById(R.id.game_btn_undo).setOnClickListener( v -> undoMove());
+    }
+
+    private void saveField(){
+        undo = new int[N][N];
+        for (int i = 0; i < N; i++) {
+            System.arraycopy(cells[i],0,undo[i],0,N);
+        }
+        prevScore = score;
+    }
+
+    private void undoMove() {
+        if( undo == null ) {
+            showUndoMessage();
+            return;
+        }
+        score = prevScore;
+        for( int i = 0; i < N; i++ ) {
+            System.arraycopy( undo[i], 0, cells[i], 0, N );
+        }
+        undo = null;
+        showField();
+    }
+    private void showUndoMessage() {
+        new AlertDialog
+                .Builder(this, androidx.appcompat.R.style.Base_V7_ThemeOverlay_AppCompat_Dialog )
+                .setTitle( "Обмеження" )
+                .setIcon( android.R.drawable.ic_dialog_alert )
+                .setMessage( "Скасування ходу неможливе" )
+                .setNeutralButton( "Закрити", (dlg, btn) -> {} )
+                .setPositiveButton( "Підписка", (dlg, btn) -> Toast.makeText(this, "Скоро буде", Toast.LENGTH_SHORT).show() )
+                .setNegativeButton( "Вийти", (dlg, btn) -> finish() )
+                .setCancelable( false )
+                .show();
+    }
+
+    private void saveBestScore() {
+        try( FileOutputStream fos = openFileOutput( bestScoreFilename, Context.MODE_PRIVATE ) ;
+             DataOutputStream writer = new DataOutputStream( fos )
+        ) {
+            writer.writeInt( bestScore );
+            writer.flush();
+        }
+        catch( IOException ex ) {
+            Log.e( "GameActivity::saveBestScore",
+                    ex.getMessage() != null ?  ex.getMessage() : "Error writing file"
+            ) ;
+        }
+    }
+
+    private void loadBestScore() {
+        try(FileInputStream fos = openFileInput( bestScoreFilename );
+            DataInputStream reader = new DataInputStream( fos )
+        ) {
+            bestScore = reader.readInt();
+        }
+        catch( IOException ex ) {
+            Log.e( "GameActivity::loadBestScore",
+                    ex.getMessage() != null ?  ex.getMessage() : "Error writing file"
+            ) ;
+        }
     }
 
     private void newGameBtnClick(View view){
@@ -186,8 +261,18 @@ public class GameActivity extends AppCompatActivity {
         return result;
     }
 
-    private boolean moveLeft() {
-        boolean result = false;
+    private boolean canMoveLeft() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 1; j < N; j++) {
+                if( cells[i][j] != 0 && ( cells[i][j-1] == 0 || cells[i][j-1] == cells[i][j] ) ) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void moveLeft() {
         for (int i = 0; i < N; i++) {      // [4 2 2 4]
             int j0 = -1;
             for (int j = 0; j < N; j++) {
@@ -201,7 +286,6 @@ public class GameActivity extends AppCompatActivity {
                             score += cells[i][j];
                             tvCells[i][j].setTag(collapseAnimation);
                             cells[i][j0] = 0;
-                            result = true;
                             j0 = -1;
                         }
                         else {
@@ -223,11 +307,9 @@ public class GameActivity extends AppCompatActivity {
                     cells[i][j] = 0;
                     tvCells[i][j].setTag(null);
                     j0 += 1;
-                    result = true;
                 }
             }
         }
-        return result;
     }
 
     private boolean moveRight() {
@@ -302,7 +384,7 @@ public class GameActivity extends AppCompatActivity {
             }
         }
         score = 0;
-        bestScore = 0;
+        loadBestScore();
     }
 
     private void showField() {
@@ -341,6 +423,7 @@ public class GameActivity extends AppCompatActivity {
         if( score > bestScore ) {
             bestScore = score;
             tvBestScore.startAnimation(scaleDemo);
+            saveBestScore();
         }
         tvBestScore.setText( getString( R.string.game_tv_best, String.valueOf( bestScore ) ) );
     }
