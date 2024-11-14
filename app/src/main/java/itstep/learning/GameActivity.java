@@ -274,6 +274,7 @@ public class GameActivity extends AppCompatActivity {
                     if (cells[i + 1][j] != 0 && cells[i][j] == 0) {
                         cells[i][j] = cells[i + 1][j];
                         cells[i + 1][j] = 0;
+                        wasShift = true;
                     }
                 }
             } while (wasShift);
@@ -302,6 +303,7 @@ public class GameActivity extends AppCompatActivity {
                     if (cells[i - 1][j] != 0 && cells[i][j] == 0) {
                         cells[i][j] = cells[i - 1][j];
                         cells[i - 1][j] = 0;
+                        wasShift = true;
                     }
                 }
             } while (wasShift);
@@ -370,6 +372,7 @@ public class GameActivity extends AppCompatActivity {
                     if (cells[i][j - 1] != 0 && cells[i][j] == 0) {
                         cells[i][j] = cells[i][j - 1];
                         cells[i][j - 1] = 0;
+                        wasShift = true;
                     }
                 }
             } while( wasShift );

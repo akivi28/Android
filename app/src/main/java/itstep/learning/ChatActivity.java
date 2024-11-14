@@ -21,9 +21,13 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.gson.Gson;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -49,6 +53,7 @@ public class ChatActivity extends AppCompatActivity {
     private final Gson gson = new Gson();
     private static final SimpleDateFormat sqlDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
     private final List<ChatMessage> messages = new ArrayList<>();
+    private static final String authorFileName = "author.name";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +71,12 @@ public class ChatActivity extends AppCompatActivity {
         etAuthor = findViewById(R.id.chat_et_author);
         etMessage = findViewById(R.id.chat_et_message_text);
         findViewById(R.id.chat_btn_send).setOnClickListener(this::sendButtonClick);
+
+        String savedAuthor = loadAuthorFromFile();
+        if (savedAuthor != null) {
+            etAuthor.setText(savedAuthor);
+        }
+
         loadChat();
     }
 
@@ -81,12 +92,39 @@ public class ChatActivity extends AppCompatActivity {
             Toast.makeText(this,"Fill field: Message", Toast.LENGTH_SHORT).show();
             return;
         }
+        etAuthor.setEnabled(false);
+        saveAuthorToFile(author);
         CompletableFuture.runAsync(()->
                 sendChatMessage(new ChatMessage()
                         .setAuthor(author)
                         .setText(message)
                         .setMoment(sqlDateFormat.format(new Date())))
                 ,threadPool);
+    }
+
+    private void saveAuthorToFile(String author) {
+        try (FileOutputStream fos = openFileOutput(authorFileName, MODE_PRIVATE)) {
+            fos.write(author.getBytes());
+        } catch (IOException e) {
+            Log.e("saveAuthorToFile", e.getMessage());
+        }
+    }
+    private String loadAuthorFromFile() {
+        StringBuilder author = new StringBuilder();
+
+        try (FileInputStream fis = openFileInput(authorFileName);
+             InputStreamReader isr = new InputStreamReader(fis);
+             BufferedReader br = new BufferedReader(isr)) {
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                author.append(line);
+            }
+            return author.toString();
+        } catch (IOException e) {
+            Log.e("saveAuthorToFile", e.getMessage());
+            return null;
+        }
     }
 
     private void sendChatMessage(ChatMessage chatMessage){
