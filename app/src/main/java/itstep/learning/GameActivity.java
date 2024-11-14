@@ -81,9 +81,12 @@ public class GameActivity extends AppCompatActivity {
         gameField.setOnTouchListener( new OnSwipeListener(GameActivity.this) {
                     @Override
                     public void onSwipeBottom() {
-                        if (moveBottom()) {
+                        if (canMoveBottom()) {
+                            saveField();
+                            moveBottom();
                             spawnCell();
                             showField();
+                            checkLoss();
                         } else {
                             Toast.makeText(GameActivity.this, "No Down Move", Toast.LENGTH_SHORT).show();
                         }
@@ -95,6 +98,7 @@ public class GameActivity extends AppCompatActivity {
                             moveLeft();
                             spawnCell();
                             showField();
+                            checkLoss();
                         }
                         else {
                             Toast.makeText(GameActivity.this, "No Left Move", Toast.LENGTH_SHORT).show();
@@ -102,9 +106,12 @@ public class GameActivity extends AppCompatActivity {
                     }
                     @Override
                     public void onSwipeRight() {
-                        if( moveRight() ) {
+                        if( canMoveRight() ) {
+                            saveField();
+                            moveRight();
                             spawnCell();
                             showField();
+                            checkLoss();
                         }
                         else {
                             Toast.makeText(GameActivity.this, "No Right Move", Toast.LENGTH_SHORT).show();
@@ -112,9 +119,12 @@ public class GameActivity extends AppCompatActivity {
                     }
                     @Override
                     public void onSwipeTop() {
-                        if (moveTop()) {
+                        if (canMoveTop()) {
+                            saveField();
+                            moveTop();
                             spawnCell();
                             showField();
+                            checkLoss();
                         } else {
                             Toast.makeText(GameActivity.this, "No Up Move", Toast.LENGTH_SHORT).show();
                         }
@@ -126,6 +136,24 @@ public class GameActivity extends AppCompatActivity {
 
         findViewById(R.id.game_btn_new).setOnClickListener(this::newGameBtnClick);
         findViewById(R.id.game_btn_undo).setOnClickListener( v -> undoMove());
+    }
+
+    private void checkLoss(){
+        if (!canMoveBottom() && !canMoveRight() && !canMoveTop() && !canMoveLeft()){
+            new AlertDialog
+                    .Builder(this, androidx.appcompat.R.style.Base_V7_ThemeOverlay_AppCompat_Dialog)
+                    .setTitle("Завершення гри")
+                    .setIcon(android.R.drawable.btn_star_big_on)
+                    .setMessage("Гра завершена з рахунком: " + score)
+                    .setPositiveButton("OK", (dlg, btn) -> {
+                        initField();
+                        spawnCell();
+                        showField();
+                    })
+                    .setCancelable(false)
+                    .show();
+
+        }
     }
 
     private void saveField(){
@@ -148,6 +176,7 @@ public class GameActivity extends AppCompatActivity {
         undo = null;
         showField();
     }
+
     private void showUndoMessage() {
         new AlertDialog
                 .Builder(this, androidx.appcompat.R.style.Base_V7_ThemeOverlay_AppCompat_Dialog )
@@ -189,16 +218,54 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void newGameBtnClick(View view){
-        int tmp = bestScore;
         initField();
         spawnCell();
-        bestScore = tmp;
         showField();
 
     }
 
-    private boolean moveTop() {
-        boolean result = false;
+    private boolean canMoveLeft() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 1; j < N; j++) {
+                if( cells[i][j] != 0 && ( cells[i][j-1] == 0 || cells[i][j-1] == cells[i][j] ) ) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    private boolean canMoveRight() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N - 1; j++) {
+                if (cells[i][j] != 0 && (cells[i][j + 1] == 0 || cells[i][j + 1] == cells[i][j])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    private boolean canMoveBottom() {
+        for (int j = 0; j < N; j++) {
+            for (int i = 0; i < N - 1; i++) {
+                if (cells[i][j] != 0 && (cells[i + 1][j] == 0 || cells[i + 1][j] == cells[i][j])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    private boolean canMoveTop() {
+        for (int j = 0; j < N; j++) {
+            for (int i = 1; i < N; i++) {
+                if (cells[i][j] != 0 && (cells[i - 1][j] == 0 || cells[i - 1][j] == cells[i][j])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void moveTop() {
         for (int j = 0; j < N; j++) {
             boolean wasShift;
             do {
@@ -207,7 +274,6 @@ public class GameActivity extends AppCompatActivity {
                     if (cells[i + 1][j] != 0 && cells[i][j] == 0) {
                         cells[i][j] = cells[i + 1][j];
                         cells[i + 1][j] = 0;
-                        wasShift = result = true;
                     }
                 }
             } while (wasShift);
@@ -222,15 +288,12 @@ public class GameActivity extends AppCompatActivity {
                         cells[k][j] = cells[k + 1][j];
                     }
                     cells[N - 1][j] = 0;
-                    result = true;
                 }
             }
         }
-        return result;
     }
 
-    private boolean moveBottom() {
-        boolean result = false;
+    private void moveBottom() {
         for (int j = 0; j < N; j++) {
             boolean wasShift;
             do {
@@ -239,7 +302,6 @@ public class GameActivity extends AppCompatActivity {
                     if (cells[i - 1][j] != 0 && cells[i][j] == 0) {
                         cells[i][j] = cells[i - 1][j];
                         cells[i - 1][j] = 0;
-                        wasShift = result = true;
                     }
                 }
             } while (wasShift);
@@ -254,22 +316,9 @@ public class GameActivity extends AppCompatActivity {
                         cells[k][j] = cells[k - 1][j];
                     }
                     cells[0][j] = 0;
-                    result = true;
                 }
             }
         }
-        return result;
-    }
-
-    private boolean canMoveLeft() {
-        for (int i = 0; i < N; i++) {
-            for (int j = 1; j < N; j++) {
-                if( cells[i][j] != 0 && ( cells[i][j-1] == 0 || cells[i][j-1] == cells[i][j] ) ) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private void moveLeft() {
@@ -312,8 +361,7 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-    private boolean moveRight() {
-        boolean result = false;
+    private void moveRight() {
         for( int i = 0; i < N; i++ ) {
             boolean wasShift;
             do {
@@ -322,7 +370,6 @@ public class GameActivity extends AppCompatActivity {
                     if (cells[i][j - 1] != 0 && cells[i][j] == 0) {
                         cells[i][j] = cells[i][j - 1];
                         cells[i][j - 1] = 0;
-                        wasShift = result = true;
                     }
                 }
             } while( wasShift );
@@ -337,11 +384,9 @@ public class GameActivity extends AppCompatActivity {
                         cells[i][k] = cells[i][k - 1];
                     }
                     cells[i][0] = 0;
-                    result = true;
                 }
             }
         }
-        return result;
     }
 
     private boolean spawnCell() {
