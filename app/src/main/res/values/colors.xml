@@ -57,4 +57,9 @@
     <color name="game_first_text_color">#766D65</color>
     <color name="game_second_text_color">#F5F4F4</color>
     <!-- endregion -->
+
+    <!-- region 2048 -->
+    <color name="chat_msg_other">#2B2D30</color>
+    <color name="chat_msg_my">#062BF0</color>
+    <!-- endregion -->
 </resources>
