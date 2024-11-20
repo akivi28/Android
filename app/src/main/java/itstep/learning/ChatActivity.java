@@ -1,7 +1,14 @@
 package itstep.learning;
 
 import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.media.MediaPlayer;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -12,6 +19,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -19,6 +27,8 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -42,8 +52,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -51,7 +63,7 @@ import java.util.concurrent.Executors;
 
 public class ChatActivity extends AppCompatActivity {
     private final String chatUrl = "https://chat.momentfor.fun/";
-    private TextView tvTitle;
+//    private TextView tvTitle;
     private LinearLayout chatContainer;
     private ScrollView chatScroller;
     private EditText etAuthor, etMessage;
@@ -65,6 +77,44 @@ public class ChatActivity extends AppCompatActivity {
     private View vBell;
     private Animation bellAnimation;
 
+    private final Map<String, String> emoji = new HashMap<String, String>() { {
+        put(":):", new String(Character.toChars(0x1F600))); // Grinning Face
+        put(":D:", new String(Character.toChars(0x1F603))); // Smiling Face
+        put(":;):", new String(Character.toChars(0x1F609))); // Winking Face
+        put(":P:", new String(Character.toChars(0x1F61B))); // Tongue Out
+        put(":'(:", new String(Character.toChars(0x1F622))); // Crying Face
+        put(":(:", new String(Character.toChars(0x1F641))); // Frowning Face
+        // Animals
+        put(":cat:", new String(Character.toChars(0x1F408))); // Cat
+        put(":dog:", new String(Character.toChars(0x1F436))); // Dog
+        put(":fox:", new String(Character.toChars(0x1F98A))); // Fox
+        put(":panda:", new String(Character.toChars(0x1F43C))); // Panda
+        // Objects
+        put(":heart:", new String(Character.toChars(0x2764))); // Heart
+        put(":star:", new String(Character.toChars(0x2B50))); // Star
+        put(":fire:", new String(Character.toChars(0x1F525))); // Fire
+        put(":phone:", new String(Character.toChars(0x1F4F1))); // Mobile Phone
+        // Nature
+        put(":sun:", new String(Character.toChars(0x2600))); // Sun
+        put(":moon:", new String(Character.toChars(0x1F319))); // Crescent Moon
+        put(":tree:", new String(Character.toChars(0x1F333))); // Deciduous Tree
+        put(":flower:", new String(Character.toChars(0x1F33C))); // Blossom
+        // Food
+        put(":apple:", new String(Character.toChars(0x1F34E))); // Red Apple
+        put(":pizza:", new String(Character.toChars(0x1F355))); // Pizza
+        put(":coffee:", new String(Character.toChars(0x2615))); // Hot Beverage
+        put(":cake:", new String(Character.toChars(0x1F382))); // Birthday Cake
+        // Flags
+        put(":flag_us:", new String(Character.toChars(0x1F1FA)) + new String(Character.toChars(0x1F1F8))); // US Flag
+        put(":flag_fr:", new String(Character.toChars(0x1F1EB)) + new String(Character.toChars(0x1F1F7))); // France Flag
+        put(":flag_jp:", new String(Character.toChars(0x1F1EF)) + new String(Character.toChars(0x1F1F5))); // Japan Flag
+        // Symbols
+        put(":check:", new String(Character.toChars(0x2714))); // Check Mark
+        put(":cross:", new String(Character.toChars(0x274C))); // Cross Mark
+        put(":warning:", new String(Character.toChars(0x26A0)));
+    } } ;
+    private MediaPlayer incomingMessage;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,7 +125,8 @@ public class ChatActivity extends AppCompatActivity {
 //            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
 //            return insets;
 //        });
-        tvTitle = findViewById(R.id.chat_tv_title);
+//        tvTitle = findViewById(R.id.chat_tv_title);
+        LinearLayout emojiContainer = findViewById(R.id.chat_ll_emoji);
         chatContainer = findViewById(R.id.chat_ll_container);
         chatScroller = findViewById(R.id.chat_scroller);
         etAuthor = findViewById(R.id.chat_et_author);
@@ -84,6 +135,8 @@ public class ChatActivity extends AppCompatActivity {
 
         vBell         = findViewById( R.id.chat_bell         );
         bellAnimation = AnimationUtils.loadAnimation(this, R.anim.bell );
+
+        incomingMessage = MediaPlayer.create( this, R.raw.hit_00 );
 
         LinearLayout mainLayout = findViewById(R.id.main);
         mainLayout.setOnClickListener(v -> hideKeyboard(v));
@@ -103,6 +156,63 @@ public class ChatActivity extends AppCompatActivity {
                                                   int leftWas, int topWas, int rightWas, int bottomWas) -> chatScroller.post(
                 ()-> chatScroller.fullScroll( View.FOCUS_DOWN )
         ));
+
+        for( Map.Entry<String, String> e : emoji.entrySet() ) {
+            TextView tv = new TextView( this ) ;
+            tv.setText( e.getValue() );
+            tv.setTextSize( 20 );
+            tv.setOnClickListener(v -> {
+                etMessage.setText( etMessage.getText() + e.getValue() );
+                etMessage.setSelection( etMessage.getText().length() );
+            });
+            emojiContainer.addView( tv );
+        }
+
+        urlToImgView(
+                "https://www.assuropoil.fr/wp-content/uploads/2023/07/avoir-un-chat-sante.jpg",
+                findViewById( R.id.chat_img )
+        );
+
+    }
+
+    private void showNotification() {
+        // Реєструємо канал у системі
+        NotificationChannel channel = new NotificationChannel(
+                "ChatChannel", "ChatChannel", NotificationManager.IMPORTANCE_DEFAULT );
+        NotificationManager notificationManager = getSystemService( NotificationManager.class );
+        notificationManager.createNotificationChannel( channel );
+        if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ActivityCompat.checkSelfPermission( this,
+                        android.Manifest.permission.POST_NOTIFICATIONS ) !=
+                        PackageManager.PERMISSION_GRANTED ) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[] { android.Manifest.permission.POST_NOTIFICATIONS },
+                    1002 ) ;
+            return;
+        }
+        // Надсилання повідомлення
+        NotificationCompat.Builder builder =
+                new NotificationCompat.Builder( this, "ChatChannel" )
+                        .setSmallIcon( android.R.drawable.star_big_on )
+                        .setContentTitle( "Чат" )
+                        .setContentText( "Нове повідомлення")
+                        .setPriority( NotificationManager.IMPORTANCE_DEFAULT );
+        Notification notification = builder.build();
+        notificationManager.notify( 1001, notification );
+    }
+    private void urlToImgView( String url, ImageView imageView ) {
+        CompletableFuture
+                .supplyAsync( () -> {
+                    try( InputStream inputStream = new URL(url).openStream() ) {
+                        return BitmapFactory.decodeStream( inputStream );
+                    }
+                    catch( IOException ex ) {
+                        Log.e( "urlToImgView", ex.getMessage() == null ? ex.getClass().toString() : ex.getMessage() );
+                        return null;
+                    }
+                }, threadPool )
+                .thenAccept( bmp -> runOnUiThread( () -> imageView.setImageBitmap(bmp) ) );
     }
 
     private void periodic(){
@@ -110,6 +220,18 @@ public class ChatActivity extends AppCompatActivity {
         handler.postDelayed(this::periodic, 1000);
     }
 
+    private String encodeEmoji( String input ) {
+        for( Map.Entry<String, String> e : emoji.entrySet() ) {
+            input = input.replace( e.getValue(), e.getKey() ) ;
+        }
+        return input;
+    }
+    private String decodeEmoji( String input ) {
+        for( Map.Entry<String, String> e : emoji.entrySet() ) {
+            input = input.replace( e.getKey(), e.getValue() ) ;
+        }
+        return input;
+    }
 
     private void sendButtonClick(View view){
         String author = etAuthor.getText().toString();
@@ -174,7 +296,9 @@ public class ChatActivity extends AppCompatActivity {
             bodyStream.write(
                     String.format("author=%s&msg=%s",
                             URLEncoder.encode(chatMessage.getAuthor(), StandardCharsets.UTF_8.name()),
-                            URLEncoder.encode(chatMessage.getText(), StandardCharsets.UTF_8.name())
+                            URLEncoder.encode(
+                                    encodeEmoji( chatMessage.getText() ),
+                                    StandardCharsets.UTF_8.name() )
                     ).getBytes(StandardCharsets.UTF_8)
             );
             bodyStream.flush();
@@ -235,6 +359,7 @@ public class ChatActivity extends AppCompatActivity {
         boolean wasNew = false;
         for( ChatMessage cm : chatMessages ) {
             if( messages.stream().noneMatch( m -> m.getId().equals( cm.getId() ) ) ) {
+                cm.setText( decodeEmoji( cm.getText() ) );
                 messages.add( cm );
                 wasNew = true;
             }
@@ -289,6 +414,8 @@ public class ChatActivity extends AppCompatActivity {
         chatContainer.post( () -> {
             chatScroller.fullScroll( View.FOCUS_DOWN ) ;
             vBell.startAnimation( bellAnimation ) ;
+            incomingMessage.start();
+            showNotification();
         } ) ;
     }
 
