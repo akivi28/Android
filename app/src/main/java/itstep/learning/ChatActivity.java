@@ -3,10 +3,14 @@ package itstep.learning;
 import android.annotation.SuppressLint;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -32,9 +36,11 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -54,17 +60,21 @@ public class ChatActivity extends AppCompatActivity {
     private static final SimpleDateFormat sqlDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
     private final List<ChatMessage> messages = new ArrayList<>();
     private static final String authorFileName = "author.name";
+    private final Handler handler = new Handler();
+
+    private View vBell;
+    private Animation bellAnimation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_chat);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+//            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+//            return insets;
+//        });
         tvTitle = findViewById(R.id.chat_tv_title);
         chatContainer = findViewById(R.id.chat_ll_container);
         chatScroller = findViewById(R.id.chat_scroller);
@@ -72,12 +82,32 @@ public class ChatActivity extends AppCompatActivity {
         etMessage = findViewById(R.id.chat_et_message_text);
         findViewById(R.id.chat_btn_send).setOnClickListener(this::sendButtonClick);
 
+        vBell         = findViewById( R.id.chat_bell         );
+        bellAnimation = AnimationUtils.loadAnimation(this, R.anim.bell );
+
+        LinearLayout mainLayout = findViewById(R.id.main);
+        mainLayout.setOnClickListener(v -> hideKeyboard(v));
+        chatContainer.setOnClickListener(v -> hideKeyboard(v));
+        chatScroller.setOnClickListener(v -> hideKeyboard(v));
+
+
         String savedAuthor = loadAuthorFromFile();
         if (savedAuthor != null) {
             etAuthor.setText(savedAuthor);
         }
 
         loadChat();
+        handler.post(this::periodic);
+        chatScroller.addOnLayoutChangeListener( ( View v,
+                                                  int left,    int top,    int right,    int bottom,
+                                                  int leftWas, int topWas, int rightWas, int bottomWas) -> chatScroller.post(
+                ()-> chatScroller.fullScroll( View.FOCUS_DOWN )
+        ));
+    }
+
+    private void periodic(){
+        loadChat();
+        handler.postDelayed(this::periodic, 1000);
     }
 
 
@@ -143,8 +173,8 @@ public class ChatActivity extends AppCompatActivity {
             OutputStream bodyStream = connection.getOutputStream();
             bodyStream.write(
                     String.format("author=%s&msg=%s",
-                            chatMessage.getAuthor(),
-                            chatMessage.getText()
+                            URLEncoder.encode(chatMessage.getAuthor(), StandardCharsets.UTF_8.name()),
+                            URLEncoder.encode(chatMessage.getText(), StandardCharsets.UTF_8.name())
                     ).getBytes(StandardCharsets.UTF_8)
             );
             bodyStream.flush();
@@ -167,11 +197,19 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    private void hideKeyboard(View view) {
+        InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
+
+
     private void loadChat() {
         CompletableFuture
                 .supplyAsync(this::getChatAsString, threadPool)
                 .thenApply(this::processChatResponse)
-                .thenAccept(this::displayChatMessages);
+                .thenAccept(m -> runOnUiThread(()-> displayChatMessages(m)) );
     }
 
     private String getChatAsString() {
@@ -203,6 +241,8 @@ public class ChatActivity extends AppCompatActivity {
         }
         if( ! wasNew ) return ;
 
+        messages.sort(Comparator.comparing(ChatMessage::getMoment));
+
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -212,14 +252,14 @@ public class ChatActivity extends AppCompatActivity {
         Drawable bgOther = getResources().getDrawable(R.drawable.chat_msg_other, getTheme());
         Drawable bgMy = getResources().getDrawable(R.drawable.chat_msg_my, getTheme());
 
-        runOnUiThread(() -> chatContainer.removeAllViews());
+        for (ChatMessage cm : messages) {
+            if(cm.getView() != null) continue;
 
-        for (ChatMessage cm : chatMessages) {
             LinearLayout linearLayout = new LinearLayout(ChatActivity.this);
             linearLayout.setOrientation(LinearLayout.VERTICAL);
 
             TextView tvAuthor = new TextView(ChatActivity.this);
-            tvAuthor.setText(cm.getAuthor());
+            tvAuthor.setText(String.format("%s %s", cm.getAuthor(), cm.getMoment()));
             tvAuthor.setPadding(30, 5, 30, 5);
             linearLayout.addView(tvAuthor);
 
@@ -243,8 +283,13 @@ public class ChatActivity extends AppCompatActivity {
             }
 
             linearLayout.setLayoutParams(messageLayoutParams);
-            runOnUiThread(() -> chatContainer.addView(linearLayout));
+            cm.setView(linearLayout);
+            chatContainer.addView(linearLayout);
         }
+        chatContainer.post( () -> {
+            chatScroller.fullScroll( View.FOCUS_DOWN ) ;
+            vBell.startAnimation( bellAnimation ) ;
+        } ) ;
     }
 
 
@@ -262,6 +307,7 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
         threadPool.shutdownNow();
         super.onDestroy();
     }
@@ -292,6 +338,15 @@ public class ChatActivity extends AppCompatActivity {
         private String author;
         private String text;
         private String moment;
+        private View view;
+
+        public View getView() {
+            return view;
+        }
+
+        public void setView(View view) {
+            this.view = view;
+        }
 
         public String getId() {
             return id;

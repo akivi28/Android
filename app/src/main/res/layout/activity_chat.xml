@@ -6,6 +6,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:fitsSystemWindows="true"
+    android:focusableInTouchMode="true"
+    android:clickable="true"
+    android:focusable="true"
     tools:context=".ChatActivity">
     <TextView
         android:id="@+id/chat_tv_title"
@@ -24,10 +28,17 @@
             android:text="Author:"/>
         <EditText
             android:id="@+id/chat_et_author"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:inputType="text"
             android:text="akiv"/>
+        <View
+            android:id="@+id/chat_bell"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:drawable/ic_popup_reminder"
+            android:backgroundTint="@color/white" />
     </LinearLayout>
 
     <ScrollView
